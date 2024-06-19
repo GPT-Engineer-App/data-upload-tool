@@ -19,56 +19,61 @@ const fromSupabase = async (query) => {
 
 /* supabase integration types
 
-### event
+### objects
 
 | name       | type        | format | required |
 |------------|-------------|--------|----------|
 | id         | int8        | number | true     |
-| name       | text        | string | true     |
 | created_at | timestamptz | string | true     |
-| date       | date        | string | true     |
+| key        | text        | string | true     |
+| value      | jsonb       | object | false    |
+| project_id | text        | string | true     |
+
+### rpc_send_event_email
+
+| name    | type    | format | required |
+|---------|---------|--------|----------|
+| event_id| int8    | number | true     |
+| email   | text    | string | true     |
 
 */
 
-// Hooks for event table
-
-export const useEvents = () => useQuery({
-    queryKey: ['events'],
-    queryFn: () => fromSupabase(supabase.from('event').select('*')),
+export const useObjects = () => useQuery({
+    queryKey: ['objects'],
+    queryFn: () => fromSupabase(supabase.from('objects').select('*')),
 });
 
-export const useEvent = (id) => useQuery({
-    queryKey: ['event', id],
-    queryFn: () => fromSupabase(supabase.from('event').select('*').eq('id', id).single()),
+export const useAddObject = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (newObject) => fromSupabase(supabase.from('objects').insert([newObject])),
+        onSuccess: () => {
+            queryClient.invalidateQueries('objects');
+        },
+    });
+};
+
+export const useUpdateObject = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (updatedObject) => fromSupabase(supabase.from('objects').update(updatedObject).eq('id', updatedObject.id)),
+        onSuccess: () => {
+            queryClient.invalidateQueries('objects');
+        },
+    });
+};
+
+export const useDeleteObject = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id) => fromSupabase(supabase.from('objects').delete().eq('id', id)),
+        onSuccess: () => {
+            queryClient.invalidateQueries('objects');
+        },
+    });
+};
+
+export const useRpcSendEventEmail = (event_id, email) => useQuery({
+    queryKey: ['rpc_send_event_email', event_id, email],
+    queryFn: () => fromSupabase(supabase.rpc('send_event_email', { event_id, email })),
 });
-
-export const useAddEvent = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (newEvent) => fromSupabase(supabase.from('event').insert([newEvent])),
-        onSuccess: () => {
-            queryClient.invalidateQueries('events');
-        },
-    });
-};
-
-export const useUpdateEvent = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (updatedEvent) => fromSupabase(supabase.from('event').update(updatedEvent).eq('id', updatedEvent.id)),
-        onSuccess: () => {
-            queryClient.invalidateQueries('events');
-            queryClient.invalidateQueries(['event', updatedEvent.id]);
-        },
-    });
-};
-
-export const useDeleteEvent = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (id) => fromSupabase(supabase.from('event').delete().eq('id', id)),
-        onSuccess: () => {
-            queryClient.invalidateQueries('events');
-        },
-    });
-};
